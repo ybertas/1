@@ -1,0 +1,638 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akrostiş Bulmaca</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Tone.js CDN for audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        /* Custom styles for Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom animation for message */
+        @keyframes bounce-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .animate-bounce-in {
+            animation: bounce-in 0.5s ease-out forwards;
+        }
+        /* Custom animation for chronometer spinning border */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-spin-custom {
+            animation: spin 2s linear infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-image bg-cover bg-center flex flex-col items-center justify-center p-4 text-gray-800" style="background-image: url('https://source.unsplash.com/random?biology&sig=1');">
+
+    <!-- Sol üst köşeye eklenen ikonlar -->
+    <div class="absolute top-4 left-4 flex space-x-2 z-10">
+        <i class="fas fa-dna text-purple-500 text-xl"></i>
+        <i class="fas fa-microscope text-green-500 text-xl"></i>
+        <i class="fas fa-heartbeat text-red-500 text-xl"></i>
+        <i class="fas fa-seedling text-yellow-500 text-xl"></i>
+    </div>
+
+    <!-- Ana içerik kapsayıcısı: Maksimum genişlik 1024px (lg breakpoint) ve ortalanmış -->
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl max-w-screen-lg w-full mx-auto relative">
+        <!-- Kronometre Ekranı - Sağ üst köşeye taşındı ve animasyon eklendi -->
+        <div class="absolute top-4 right-4 z-10">
+            <div class="relative w-24 h-24">
+                <div class="rounded-full border-4 border-blue-400 absolute inset-0 animate-spin-custom" style="border-top-color: transparent;"></div>
+                <div id="chronometer-display" class="absolute inset-0 flex items-center justify-center text-xl font-bold text-blue-700">00:00</div>
+            </div>
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-center text-purple-700 mb-6 drop-shadow-md">
+            Akrostiş Bulmaca
+        </h1>
+
+        <!-- İki sütunlu düzen için grid kullanıldı -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+            <!-- Cevap Kutucukları Bölümü (Sol Taraf) -->
+            <div class="bg-orange-50 p-5 rounded-lg shadow-md border-2 border-orange-200 order-2 md:order-1 md:col-span-3">
+                <h2 class="text-xl sm:text-2xl font-bold text-orange-700 mb-4 w-full text-center">Cevap Kutucukları</h2>
+                <div class="flex justify-center">
+                    <div id="clue-inputs-container" class="flex flex-col">
+                        <!-- Clue inputs will be rendered here by JavaScript -->
+                    </div>
+                </div>
+                <!-- Butonlar aynı gruba taşındı ve aralarındaki boşluk ayarlandı -->
+                <div class="flex flex-col space-y-3 mt-4">
+                    <button id="check-all-answers-btn" class="w-full py-3 px-6 bg-purple-600 text-white font-semibold rounded-lg shadow-lg hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                        <i class="fas fa-check-circle mr-2"></i> Dene
+                    </button>
+                    <button id="solve-all-btn" class="w-full py-3 px-6 bg-yellow-500 text-white font-semibold rounded-lg shadow-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2">
+                        <i class="fas fa-magic mr-2"></i> Cevapları Göster
+                    </button>
+                    <button id="reset-puzzle-btn" class="w-full py-3 px-6 bg-red-500 text-white font-semibold rounded-lg shadow-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2">
+                        <i class="fas fa-redo-alt mr-2"></i> Sıfırla
+                    </button>
+                    <button id="show-how-to-play-btn" class="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <i class="fas fa-question-circle mr-2"></i> Nasıl Oynanır?
+                    </button>
+                </div>
+            </div>
+
+            <!-- İpuçları Bölümü (Sağ Taraf) -->
+            <div class="bg-blue-50 p-5 rounded-lg shadow-md border-2 border-blue-200 order-1 md:order-2 md:col-span-2">
+                <h2 class="text-xl sm:text-2xl font-bold text-blue-700 mb-4 w-full text-center">Sorular</h2>
+                <div id="clues-list">
+                    <!-- Clues will be rendered here by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div id="message-display" class="mt-8 p-4 bg-green-100 border-2 border-green-400 text-green-800 rounded-lg text-center font-semibold text-lg shadow-md animate-bounce-in hidden">
+            <!-- Messages will be displayed here -->
+        </div>
+    </div>
+
+    <!-- Başarı Modalı -->
+    <div id="success-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-lg w-full animate-bounce-in relative">
+            <button id="close-success-modal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            <h3 class="text-3xl font-extrabold text-green-700 mb-4">Tebrikler! Bulmacayı Tamamladınız!</h3>
+            <p id="success-text" class="text-lg text-gray-700 mb-6 leading-relaxed">
+                <!-- Metin buraya eklenecek -->
+            </p>
+            <div id="acrostic-word-display" class="text-4xl font-extrabold text-purple-600 tracking-widest mb-4">
+                <!-- Akrostiş kelimesi buraya eklenecek -->
+            </div>
+            <p id="time-taken-display" class="text-xl font-semibold text-gray-600 mt-4">
+                <!-- Süre burada gösterilecek -->
+            </p>
+        </div>
+    </div>
+
+    <!-- Nasıl Oynanır Modalı -->
+    <div id="how-to-play-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-lg w-full animate-bounce-in relative">
+            <h3 class="text-3xl font-extrabold text-blue-700 mb-4">BULMACAYI NASIL OYNARSIN?</h3>
+            <div class="text-left text-gray-700 space-y-3">
+                <p><span class="font-bold">📖 1. Soruları Oku:</span> Sorular kutucuğundaki her bir soruyu dikkatlice incele.</p>
+                <p><span class="font-bold">✏️ 2. Cevapları Yaz:</span> Bulduğun cevapları ilgili bulmaca kutucuklarına yerleştir.</p>
+                <p><span class="font-bold">✅ 3. “Dene” Butonuna Tıkla:</span> Doğru harfler yeşil, yanlışlar kırmızı renkle gösterilir.</p>
+                <p><span class="font-bold">🔄 4. “Sıfırla” Butonunu Kullan:</span> Yanlış yaptıysan üzülme! Bu butonla oyuna en baştan başlayabilirsin.</p>
+                <p><span class="font-bold">👀 5. “Cevapları Göster” Butonu:</span> Tüm doğru cevapları görmek için bu butona tıklayabilirsin.</p>
+                <p><span class="font-bold">🎉 6. Akrostiş Sürprizi!:</span> Tüm soruları doğru yanıtladığında, gizli akrostiş kelimesinin anlamı seni bekliyor!</p>
+            </div>
+            <button id="start-game-btn" class="mt-8 w-full py-3 px-6 bg-green-600 text-white font-semibold rounded-lg shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                Oyuna Başla
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK'ları -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase yapılandırması ve başlatma
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        }
+
+        // Bulmaca verileri
+        // acrosticCharIndex: Akrostiş kelimesini oluşturan harfin cevaptaki 0-tabanlı indeksi
+        const newClues = [
+            { id: "1", text: "DNA’nın genetik bilgisini taşıyan küçük halkasal molekül?", answer: "PLAZMİD", acrosticCharIndex: 0 }, // P
+            { id: "2", text: "Fotosenteğin gerçekleştiği bitki organeli?", answer: "KLOROPLAST", acrosticCharIndex: 3 }, // R
+            { id: "3", text: "Hücre içinde madde taşımada görevli zarla çevrili yapı?", answer: "ENDOPLAZMİK", acrosticCharIndex: 3 }, // O (4. harf, indeks 3)
+            { id: "4", text: "Kas hücrelerinde enerji sağlayan molekül?", answer: "ATP", acrosticCharIndex: 1 }, // T
+            { id: "5", text: "Kalıtımın temel birimi?", answer: "GEN", acrosticCharIndex: 1 }, // E
+            { id: "6", text: "Protein sentezinde görevli organel?", answer: "RİBOZOM", acrosticCharIndex: 1 }, // İ (2. harf, indeks 1)
+            { id: "7", text: "Hücre çekirdeğini saran zar yapısı?", answer: "NÜKLEÜS", acrosticCharIndex: 0 }, // N
+        ];
+
+        // Akrostiş kelimesini yeni cevapların belirtilen indekslerdeki harflerinden oluştur
+        // toLocaleUpperCase('tr-TR') kullanılarak Türkçe karakter uyumluluğu sağlandı
+        const acrosticWordFromClues = newClues.map(clue => clue.answer && clue.acrosticCharIndex !== undefined ? clue.answer[clue.acrosticCharIndex].toLocaleUpperCase('tr-TR') : '').join('');
+
+        const puzzleData = {
+            quote: "BIOLOGYPUZZLE",
+            clues: newClues,
+            acrosticWord: acrosticWordFromClues
+        };
+
+        let clueAnswers = {};
+        let messageTimeoutId = null;
+        let successSound = null; // Tone.js synth or player
+
+        // Kronometre değişkenleri
+        let startTime = 0;
+        let chronometerInterval = null;
+        let elapsedTimeToDisplay = "00:00";
+
+        // DOM elementleri
+        const clueInputsContainer = document.getElementById('clue-inputs-container');
+        const cluesList = document.getElementById('clues-list');
+        const messageDisplay = document.getElementById('message-display');
+        const solveAllBtn = document.getElementById('solve-all-btn');
+        const resetPuzzleBtn = document.getElementById('reset-puzzle-btn');
+        const checkAllAnswersBtn = document.getElementById('check-all-answers-btn'); // "Dene" butonu
+        const successModal = document.getElementById('success-modal');
+        const successText = document.getElementById('success-text');
+        const closeSuccessModalBtn = document.getElementById('close-success-modal');
+        const acrosticWordDisplay = document.getElementById('acrostic-word-display');
+        const howToPlayModal = document.getElementById('how-to-play-modal');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const chronometerDisplay = document.getElementById('chronometer-display');
+        const timeTakenDisplay = document.getElementById('time-taken-display');
+        const showHowToPlayBtn = document.getElementById('show-how-to-play-btn');
+
+
+        // Mesajı gösteren yardımcı fonksiyon
+        function showMessage(msg, isError = false) {
+            if (messageTimeoutId) {
+                clearTimeout(messageTimeoutId);
+            }
+            messageDisplay.textContent = msg;
+            messageDisplay.classList.remove('hidden', 'bg-green-100', 'border-green-400', 'text-green-800', 'bg-red-100', 'border-red-400', 'text-red-800');
+            messageDisplay.classList.add(...(isError ? ['bg-red-100', 'border-red-400', 'text-red-800'] : ['bg-green-100', 'border-green-400', 'text-green-800']));
+            messageDisplay.classList.add('animate-bounce-in');
+            messageDisplay.classList.remove('hidden');
+
+            messageTimeoutId = setTimeout(() => {
+                messageDisplay.classList.add('hidden');
+            }, 3000); // 3 saniye sonra mesajı gizle
+        }
+
+        // Firestore'a ilerlemeyi kaydet
+        async function saveProgress() {
+            if (db && userId && puzzleData) {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/acrosticPuzzle/data`);
+                    await setDoc(userDocRef, {
+                        clueAnswers: clueAnswers,
+                        lastUpdated: new Date()
+                    }, { merge: true });
+                    console.log("İlerleme kaydedildi.");
+                } catch (e) {
+                    console.error("İlerleme kaydedilirken hata oluştu: ", e);
+                }
+            }
+        }
+
+        // İpucu cevapları değiştiğinde ızgarayı ve akrostişi güncelle
+        function updatePuzzleDisplay() {
+            checkCompletion(); // Sadece genel tamamlama durumunu kontrol eder
+            saveProgress(); // Her değişiklikte kaydet
+        }
+
+        // Tek karakter girişi için handler
+        function handleClueCharChange(clueId, charIndex, value) {
+            const currentClue = puzzleData.clues.find(c => c.id === clueId);
+            if (!currentClue) return;
+
+            // Get the current answer string, or create a new one filled with spaces if it doesn't exist
+            let currentAnswerString = clueAnswers[clueId] || ' '.repeat(currentClue.answer.length);
+
+            // Convert to array to modify specific character
+            let newAnswerChars = currentAnswerString.split('');
+
+            const processedValue = value.trim().toLocaleUpperCase('tr-TR');
+
+            // Update the character at the specific index. Store space for empty, or character.
+            if (charIndex >= 0 && charIndex < newAnswerChars.length) {
+                newAnswerChars[charIndex] = processedValue === '' ? ' ' : processedValue;
+            }
+
+            // Update clueAnswers with the new string
+            clueAnswers = { ...clueAnswers, [clueId]: newAnswerChars.join('') };
+
+            // Kullanıcı yazarken kutucukların rengini sıfırla (akrostiş vurgusu hariç)
+            const inputElement = document.getElementById(`clue-${clueId}-char-${charIndex}`);
+            if (inputElement) {
+                inputElement.classList.remove('bg-green-200', 'bg-red-200');
+                if (charIndex === currentClue.acrosticCharIndex) {
+                    inputElement.classList.add('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                } else {
+                    inputElement.classList.remove('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                }
+            }
+
+            updatePuzzleDisplay();
+
+            if (processedValue !== '') {
+                const nextInputId = `clue-${clueId}-char-${charIndex + 1}`;
+                const nextInput = document.getElementById(nextInputId);
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        // Belirli bir ipucunun kutucuklarına renk uygulama fonksiyonu (Sadece "Dene" için)
+        function applyClueColoring(clueId) {
+            const clue = puzzleData.clues.find(c => c.id === clueId);
+            if (!clue) return;
+
+            const enteredAnswer = (clueAnswers[clue.id] || '').toLocaleUpperCase('tr-TR');
+            const correctAnswer = clue.answer.toLocaleUpperCase('tr-TR');
+
+            for (let i = 0; i < clue.answer.length; i++) {
+                const inputElement = document.getElementById(`clue-${clueId}-char-${i}`);
+                if (inputElement) {
+                    inputElement.classList.remove('bg-green-200', 'bg-red-200'); // Önceki renkleri temizle
+
+                    // Akrostiş harfini vurgula (boş olsa bile)
+                    if (i === clue.acrosticCharIndex) {
+                        inputElement.classList.add('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                    } else {
+                        inputElement.classList.remove('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                    }
+
+                    // Get the character from the entered answer, trimming it to handle spaces
+                    const charInEnteredAnswer = enteredAnswer[i] ? enteredAnswer[i].trim() : '';
+
+                    // Apply coloring only if a non-empty character is present
+                    if (charInEnteredAnswer !== '') {
+                        if (charInEnteredAnswer === correctAnswer[i]) {
+                            inputElement.classList.add('bg-green-200');
+                        } else {
+                            inputElement.classList.add('bg-red-200');
+                        }
+                    }
+                    // If charInEnteredAnswer is '', no color is applied (it remains white/default)
+                }
+            }
+        }
+
+        // Tüm kutucuklardaki doğru/yanlış renklerini temizler, akrostiş vurgusunu korur.
+        function clearClueColoring(clueId) {
+            const clue = puzzleData.clues.find(c => c.id === clueId);
+            if (!clue) return;
+
+            for (let i = 0; i < clue.answer.length; i++) {
+                const inputElement = document.getElementById(`clue-${clue.id}-char-${i}`);
+                if (inputElement) {
+                    inputElement.classList.remove('bg-green-200', 'bg-red-200');
+                }
+            }
+        }
+
+        // Bulmaca tamamlama kontrolü (modal göstermeyecek)
+        function checkCompletion() {
+            const allCluesCorrect = puzzleData.clues.every(clue => {
+                // Compare trimmed entered answer with correct answer
+                const entered = (clueAnswers[clue.id] || '').toLocaleUpperCase('tr-TR').trim();
+                const correct = clue.answer.toLocaleUpperCase('tr-TR');
+                return entered === correct;
+            });
+
+            if (!allCluesCorrect) {
+                if (messageDisplay.textContent === "Tebrikler! Bulmacayı tamamladınız!") {
+                    messageDisplay.classList.add('hidden');
+                }
+            }
+        }
+
+        // "Dene" butonuna özel fonksiyon: cevapları kontrol eder ve doğruysa modalı gösterir
+        async function checkAllAnswersAndShowModal() {
+            puzzleData.clues.forEach(clue => {
+                applyClueColoring(clue.id); // Tüm ipuçlarına renklendirmeyi uygula
+            });
+
+            const allCluesCorrect = puzzleData.clues.every(clue => {
+                // Compare trimmed entered answer with correct answer
+                const entered = (clueAnswers[clue.id] || '').toLocaleUpperCase('tr-TR').trim();
+                const correct = clue.answer.toLocaleUpperCase('tr-TR');
+                return entered === correct;
+            });
+
+            if (allCluesCorrect) {
+                stopChronometer(); // Kronometreyi durdur
+
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                }
+                if (successSound) {
+                    successSound.triggerAttackRelease("C4", "8n");
+                }
+
+                successText.textContent = "Protein, canlıların yapısında bulunan ve yaşamsal faaliyetlerin gerçekleşmesini sağlayan büyük ve karmaşık biyolojik moleküllerdir. Amino asitlerin belirli bir sırayla birleşmesiyle oluşurlar.";
+                acrosticWordDisplay.textContent = puzzleData.acrosticWord;
+                timeTakenDisplay.textContent = `Süre: ${elapsedTimeToDisplay}`; // Süreyi göster
+                successModal.classList.remove('hidden');
+                showMessage("Tebrikler! Bulmacayı tamamladınız!");
+            } else {
+                showMessage("Bazı cevaplar yanlış veya eksik.", true);
+            }
+        }
+
+        // Cevapları Göster
+        function solveAll() {
+            stopChronometer(); // Kronometreyi durdur
+
+            const allAnswers = {};
+            puzzleData.clues.forEach(clue => {
+                allAnswers[clue.id] = clue.answer;
+            });
+            clueAnswers = allAnswers;
+            updatePuzzleDisplay();
+            renderClueInputs();
+
+            puzzleData.clues.forEach(clue => {
+                applyClueColoring(clue.id);
+            });
+            showMessage("Cevaplar gösterildi.", false);
+        }
+
+        // Bulmacayı sıfırla
+        async function resetPuzzle() {
+            clueAnswers = {};
+            updatePuzzleDisplay();
+            renderClueInputs();
+            showMessage("Bulmaca sıfırlandı.", false);
+
+            puzzleData.clues.forEach(clue => {
+                clearClueColoring(clue.id);
+                applyClueColoring(clue.id); // Akrostiş vurgusunu tekrar uygula
+            });
+
+            // Kronometreyi sıfırla ve durdur
+            stopChronometer();
+            chronometerDisplay.textContent = "00:00";
+            startTime = 0;
+
+            if (db && userId) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/acrosticPuzzle/data`);
+                await setDoc(userDocRef, { clueAnswers: {} }, { merge: true });
+            }
+        }
+
+        // Kronometreyi başlat
+        function startChronometer() {
+            startTime = Date.now();
+            if (chronometerInterval) {
+                clearInterval(chronometerInterval);
+            }
+            chronometerInterval = setInterval(updateChronometerDisplay, 1000);
+        }
+
+        // Kronometreyi güncelle
+        function updateChronometerDisplay() {
+            const now = Date.now();
+            const elapsedMilliseconds = now - startTime;
+            const totalSeconds = Math.floor(elapsedMilliseconds / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            const formattedMinutes = String(minutes).padStart(2, '0');
+            const formattedSeconds = String(seconds).padStart(2, '0');
+            elapsedTimeToDisplay = `${formattedMinutes}:${formattedSeconds}`;
+            chronometerDisplay.textContent = elapsedTimeToDisplay;
+        }
+
+        // Kronometreyi durdur
+        function stopChronometer() {
+            if (chronometerInterval) {
+                clearInterval(chronometerInterval);
+                chronometerInterval = null;
+            }
+        }
+
+        // İpuçlarını ve cevap kutucuklarını DOM'a render et
+        function renderCluesAndInputs() {
+            cluesList.innerHTML = '';
+            clueInputsContainer.innerHTML = '';
+
+            // Calculate maxAcrosticCharIndex to determine the necessary offset
+            const charWidth = 40 + 4; // w-10 (40px) + mx-0.5*2 (4px) = 44px
+            const maxAcrosticCharIndex = Math.max(...puzzleData.clues.map(c => c.acrosticCharIndex));
+
+            puzzleData.clues.forEach(clue => {
+                // İpuçları listesi (Sağ Taraf) - Numaralandırma burada sabit kalır
+                const clueDiv = document.createElement('div');
+                clueDiv.className = "mb-8 flex items-start";
+                clueDiv.innerHTML = `
+                    <span class="font-semibold text-gray-700 mr-2 min-w-[20px]">${clue.id}.</span>
+                    <p class="text-gray-600 flex-grow">${clue.text}</p>
+                `;
+                cluesList.appendChild(clueDiv);
+
+                // Cevap kutucukları (Sol Taraf)
+                const inputRowDiv = document.createElement('div');
+                inputRowDiv.className = "mb-0 flex items-center p-2 rounded-md transition-all duration-200"; // p-2 (8px padding) geri eklendi
+
+                // Calculate the dynamic padding-left for inputRowDiv to align the acrostic character
+                // This padding is applied *in addition* to the p-2 (8px) already on the inputRowDiv.
+                const dynamicPaddingLeft = (maxAcrosticCharIndex - clue.acrosticCharIndex) * charWidth;
+                inputRowDiv.style.paddingLeft = `${dynamicPaddingLeft + 8}px`; // Add 8px from p-2
+
+                // Create the number box div for the answer section
+                const numberBoxDiv = document.createElement('div');
+                numberBoxDiv.className = "w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0 mr-0.5"; // w-10 h-10 olarak değiştirildi
+                numberBoxDiv.textContent = clue.id;
+
+                inputRowDiv.appendChild(numberBoxDiv); // Append number box first
+
+                const charInputsDiv = document.createElement('div');
+                charInputsDiv.className = "flex flex-grow flex-nowrap";
+                charInputsDiv.id = `clue-chars-${clue.id}`;
+                inputRowDiv.appendChild(charInputsDiv); // Append char inputs container next
+
+                clueInputsContainer.appendChild(inputRowDiv);
+
+                // Add focus/blur event listeners to the inputRowDiv
+                inputRowDiv.addEventListener('focusin', () => {
+                    inputRowDiv.classList.add('ring-2', 'ring-purple-500', 'bg-orange-100');
+                });
+                inputRowDiv.addEventListener('focusout', (event) => {
+                    if (!inputRowDiv.contains(event.relatedTarget)) {
+                        inputRowDiv.classList.remove('ring-2', 'ring-purple-500', 'bg-orange-100');
+                    }
+                });
+
+                for (let i = 0; i < clue.answer.length; i++) {
+                    const input = document.createElement('input');
+                    input.type = "text";
+                    input.maxLength = "1";
+                    input.id = `clue-${clue.id}-char-${i}`;
+                    input.className = "w-10 h-10 text-center border border-orange-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all duration-200 uppercase text-gray-800 font-bold text-base mx-0.5"; // w-10 h-10 olarak değiştirildi
+                    // If the stored character is a space, display it as empty string in the input field
+                    input.value = (clueAnswers[clue.id] && clueAnswers[clue.id][i] && clueAnswers[clue.id][i].trim() !== '') ? clueAnswers[clue.id][i] : '';
+
+                    input.addEventListener('input', (e) => handleClueCharChange(clue.id, i, e.target.value));
+                    input.addEventListener('focus', (e) => e.target.select());
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Backspace' && e.target.value === '') {
+                            const prevInputId = `clue-${clue.id}-char-${i - 1}`;
+                            const prevInput = document.getElementById(prevInputId);
+                            if (prevInput) {
+                                prevInput.focus();
+                            }
+                        }
+                    });
+                    charInputsDiv.appendChild(input);
+                }
+                // İlk render sırasında sadece akrostiş vurgusu uygulansın, doğru/yanlış renkleri uygulanmasın
+                const clueElement = puzzleData.clues.find(c => c.id === clue.id);
+                if (clueElement) {
+                    for (let i = 0; i < clueElement.answer.length; i++) {
+                        const inputElement = document.getElementById(`clue-${clue.id}-char-${i}`);
+                        if (inputElement && i === clueElement.acrosticCharIndex) {
+                            inputElement.classList.add('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Sayfa yüklendiğinde çalışacak kod
+        window.onload = async function() {
+            // Tone.js synth'i başlat
+            successSound = new Tone.Synth().toDestination();
+
+            // "Nasıl Oynanır?" modalını göster
+            howToPlayModal.classList.remove('hidden');
+
+            if (auth) {
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                    } else {
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined') {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                            userId = auth.currentUser?.uid || crypto.randomUUID();
+                        } catch (error) {
+                            console.error("Firebase Auth hatası:", error);
+                            userId = crypto.randomUUID();
+                        }
+                    }
+                    isAuthReady = true;
+                    loadUserData();
+                });
+            } else {
+                userId = crypto.randomUUID();
+                isAuthReady = true;
+                loadUserData();
+            }
+
+            // "Oyuna Başla" butonuna tıklama olayı
+            startGameBtn.addEventListener('click', () => {
+                howToPlayModal.classList.add('hidden'); // Modalı gizle
+                startChronometer(); // Kronometreyi başlat
+            });
+
+            checkAllAnswersBtn.addEventListener('click', checkAllAnswersAndShowModal);
+
+            solveAllBtn.addEventListener('click', solveAll);
+            resetPuzzleBtn.addEventListener('click', resetPuzzle);
+            closeSuccessModalBtn.addEventListener('click', () => {
+                successModal.classList.add('hidden');
+            });
+            showHowToPlayBtn.addEventListener('click', () => {
+                howToPlayModal.classList.remove('hidden'); // "Nasıl Oynanır?" modalını tekrar göster
+            });
+        };
+
+        // Kullanıcı verilerini Firestore'dan yükle
+        async function loadUserData() {
+            if (db && userId) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/acrosticPuzzle/data`);
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    const savedData = docSnap.data();
+                    clueAnswers = savedData.clueAnswers || {};
+                }
+            }
+            renderCluesAndInputs(); // Initial render with loaded data
+            updatePuzzleDisplay();
+        }
+
+        // Cevap kutucuklarını güncelleyen fonksiyon (solveAll için ve ilk yüklemede)
+        function renderClueInputs() {
+            puzzleData.clues.forEach(clue => {
+                const charInputsDiv = document.getElementById(`clue-chars-${clue.id}`);
+                if (charInputsDiv) {
+                    for (let i = 0; i < clue.answer.length; i++) {
+                        const inputElement = document.getElementById(`clue-${clue.id}-char-${i}`);
+                        if (inputElement) {
+                            // If the stored character is a space, display it as empty string in the input field
+                            inputElement.value = (clueAnswers[clue.id] && clueAnswers[clue.id][i] && clueAnswers[clue.id][i].trim() !== '') ? clueAnswers[clue.id][i] : '';
+
+                            // Apply acrostic highlight on re-render
+                            if (i === clue.acrosticCharIndex) {
+                                inputElement.classList.add('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                            } else {
+                                inputElement.classList.remove('ring-2', 'ring-yellow-500', 'bg-yellow-100');
+                            }
+
+                            // Clear any previous correct/incorrect coloring on re-render
+                            inputElement.classList.remove('bg-green-200', 'bg-red-200');
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
