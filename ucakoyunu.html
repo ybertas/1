@@ -15,8 +15,6 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { width: 100vw; height: 100vh; overflow: hidden; font-family: var(--font); background: var(--bg); }
         #container {
-            max-width: 1024px;
-            max-height: 768px;
             width: 100%;
             height: 100%;
             margin: auto;
@@ -24,11 +22,11 @@
             flex-direction: column;
         }
         #banner {
-            padding: 1vh;
+            padding: 2vh;
             background: var(--banner);
             color: white;
             text-align: center;
-            font-size: 2.5vh;
+            font-size: 4vw;
             flex: none;
         }
         #game-area {
@@ -39,23 +37,23 @@
         }
         #score {
             position: absolute;
-            top: 2vh; right: 2vh; /* Göstergeyi daha büyük yapmak için konum ve boyut güncellendi */
+            top: 2vh; right: 2vw;
             background: rgba(255,255,255,0.8);
-            padding: 1vh 2vh; /* Göstergeyi daha büyük yapmak için dolgu güncellendi */
+            padding: 1vh 2vh;
             border-radius: 1vh;
-            font-size: 3vh; /* Skor metni daha büyük */
+            font-size: 3vw;
             font-weight: bold;
             z-index: 10;
         }
         #hearts {
             position: absolute;
-            top: 2vh; left: 2vh; /* Kalpleri daha büyük yapmak için konum ve boşluk güncellendi */
+            top: 2vh; left: 2vw;
             display: flex;
-            gap: 1vh; /* Kalpler arasındaki boşluk artırıldı */
+            gap: 1vh;
             z-index: 10;
         }
         #hearts div {
-            width: 3vh; height: 3vh; /* Kalpler daha büyük */
+            width: 3vw; height: 3vw;
             background: red;
             clip-path: polygon(50% 0%,61% 30%,98% 35%,68% 58%,79%91%,50%75%,21%91%,32%59%,2%35%,39%30%);
         }
@@ -71,18 +69,19 @@
             opacity: 1; pointer-events: auto;
         }
         .modal {
-            background: white;
-            border-radius: 2vh;
-            padding: 2vh;
-            text-align: center;
-            width: 90%;
-            max-width: 400px;
-            font-size: 2vh;
-        }
+    background: white;
+    border-radius: 2vh;
+    padding: 2vh;
+    text-align: center;
+    width: 90%;
+    max-width: 750px; /* Eskisi: 400px */
+    font-size: 1.3vw; /* Eskisi: 2vw, yazı küçüldü */
+}
+
         .modal button {
             margin-top: 2vh;
             padding: 1vh 2vh;
-            font-size: 2vh;
+            font-size: 2vw;
             background: var(--btn);
             color: var(--btnText);
             border: none;
@@ -91,8 +90,10 @@
         }
         #plane {
             position: absolute;
-            width: 12vw; max-width: 120px;
-            left: 5vw; top: 40%;
+            width: 12vw;
+            max-width: 120px;
+            left: 5vw;
+            top: 40%;
             touch-action: none;
             cursor: grab;
             z-index: 10;
@@ -107,6 +108,17 @@
             width: 120px; height: 90px;
             display: flex; align-items: center; justify-content: center;
             z-index: 5;
+            transition: box-shadow 0.3s, background-color 0.3s;
+        }
+        .cloud.correct {
+            background-color: #42e66caa !important;
+            box-shadow: 0 0 32px 8px #42e66c88;
+            color: #fff;
+        }
+        .cloud.incorrect {
+            background-color: #e64c4caa !important;
+            box-shadow: 0 0 32px 8px #e64c4c88;
+            color: #fff;
         }
         .cloud.correct::after {
             content: "✔️";
@@ -114,15 +126,35 @@
             top: -1vh; right: -1vh;
             font-size: 2vh;
         }
+        .cloud.incorrect::after {
+            content: "✖️";
+            position: absolute;
+            top: -1vh; right: -1vh;
+            font-size: 2vh;
+        }
         .shake-strong {
-            animation: shake 0.6s;
+            animation: shake 0.7s cubic-bezier(.36,.07,.19,.97) both;
         }
         @keyframes shake {
-            0% { transform: translate(4px, 4px); }
-            25% { transform: translate(-4px, -4px); }
-            50% { transform: translate(4px, -4px); }
-            75% { transform: translate(-4px, 4px); }
-            100% { transform: translate(0, 0); }
+            10%, 90% { transform: translate3d(-5px, 0, 0); }
+            20%, 80% { transform: translate3d(8px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-12px, 0, 0); }
+            40%, 60% { transform: translate3d(12px, 0, 0); }
+        }
+        @media (max-width: 768px) {
+            #banner {
+                font-size: 6vw;
+            }
+            #score {
+                font-size: 4vw;
+            }
+            #plane {
+                width: 20vw;
+            }
+            .cloud {
+                width: 80px;
+                height: 60px;
+            }
         }
     </style>
 </head>
@@ -137,8 +169,32 @@
         <div id="modal-start" class="modal-overlay show">
             <div class="modal">
                 <h2>Nasıl Oynanır?</h2>
-                <p>Uçağa basılı tut ve yukarı/aşağı sürükleyerek kontrol et.</p>
-                <button id="btn-start">Oyuna Başla</button>
+<p>
+    <strong>Oyun Amacı:</strong><br>
+    Uçağı kontrol ederek ekranda  ilerleyen bulutlara çarpmak. Amaç, çift (2 ile tam bölünebilen) sayılı bulutları toplamaktır. Yani, <b>sadece çift numaralı bulutlara çarptığınızda puan kazanırsınız</b>.
+</p>
+<p>
+    <strong>Oyun Kuralları:</strong>
+    
+        <li>Her doğru bulut (çift sayılı) 1 puan kazandırır ve bulut yeşil olur.</li>
+        <li>Yanlış buluta (tek sayılı) çarparsanız bulut kırmızı olur ve ekran sallanır.</li>
+        <li>En fazla 3 kez yanlış yapabilirsiniz. 3 hata yaptığınızda oyun biter.</li>
+        <li>10 doğruya ulaşırsanız oyunu kazanırsınız.</li>        
+    </ul>
+</p>
+<p>
+    <strong>Uçağı Kontrol Etme:</strong><br>
+    Uçağın üstüne bir kere <b>fare ile basılı tutarak veya parmağınızla dokunarak</b> yukarı-aşağı sürükleyebilirsiniz.<br>
+</p>
+<p>
+    <strong>Puanlama:</strong><br>
+    Her doğru bulut için 1 puan. Yanlış bulutta hakkınız azalır. Toplam 10 doğruya ilk ulaşan kazanır.
+</p>
+<p>
+    <em>Bol şans! Hedefiniz: 10 doğru bulut toplamaktır.</em>
+</p>
+<button id="btn-start">Oyuna Başla</button>
+
             </div>
         </div>
         <div id="modal-win" class="modal-overlay"><div class="modal"><h2>Tebrikler!</h2><p>10 doğru yaptın!</p><button id="btn-restart-win">Yeniden Başla</button></div></div>
@@ -147,36 +203,36 @@
     <audio id="sound-correct" src="https://assets.mixkit.co/sfx/preview/mixkit-positive-game-tone-2587.mp3"></audio>
     <audio id="sound-wrong" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-2586.mp3"></audio>
     <script>
-        // Oyun değişkenlerini tanımla
         let correct = 0;
         let wrong = 0;
         let game = false;
         let cloudInterval;
         const maxWrong = 3;
         const maxCorrect = 10;
-        
-        // DOM elementlerini al
+
+        // Bulut bölge yönetimi için
+        const REGION_COUNT = 3; // Kaç bölgeye böleceğiz
+        let regionClouds = Array(REGION_COUNT).fill(null); // Her bölgede 1 bulut olabilir
+
         const plane = document.getElementById("plane");
         const area = document.getElementById("game-area");
         const scoreEl = document.getElementById("scoreCount");
         const heartsEl = document.getElementById("hearts");
-        
+
         const mods = {
             start: document.getElementById("modal-start"),
             win: document.getElementById("modal-win"),
             lose: document.getElementById("modal-lose")
         };
-        
+
         const sounds = {
             correct: document.getElementById("sound-correct"),
             wrong: document.getElementById("sound-wrong")
         };
 
-        // Sürükleme değişkenleri
         let dragging = false;
         let offsetY = 0;
 
-        // Oyun durumunu güncelleyen fonksiyon
         function updateStatus() {
             scoreEl.textContent = correct;
             heartsEl.innerHTML = '';
@@ -185,7 +241,6 @@
             }
         }
 
-        // Modalları gösterip gizleyen fonksiyon
         function showModal(type) {
             Object.values(mods).forEach(m => m.classList.remove('show'));
             if (type) {
@@ -193,28 +248,69 @@
             }
         }
 
-        // Bulutları oluşturan fonksiyon
-        function createCloud() {
-            if (area.querySelectorAll('.cloud').length >= 6) {
-                return;
+        function getRegionHeights() {
+            // Oyun alanını bölgeye ayırmak için yükseklikleri bul
+            const height = area.clientHeight;
+            const regionHeight = height / REGION_COUNT;
+            return Array.from({length: REGION_COUNT}, (_, i) => ({
+                top: i * regionHeight,
+                bottom: (i + 1) * regionHeight
+            }));
+        }
+
+        function getEmptyRegions() {
+            // Hangi bölgede bulut yok? O bölgelerin indeksini döndür
+            const regions = [];
+            for (let i = 0; i < REGION_COUNT; i++) {
+                if (!regionClouds[i]) regions.push(i);
             }
+            return regions;
+        }
+
+        function createCloud() {
+            // Maksimumda 1 bulut her bölgeye
+            const emptyRegions = getEmptyRegions();
+            if (emptyRegions.length === 0) return; // Tüm bölgeler doluysa çık
+
+            // Aynı anda toplam 6 bulut sınırı
+            if (area.querySelectorAll('.cloud').length >= 6) return;
+
+            // Rastgele boş bir bölge seç
+            const regionIndex = emptyRegions[Math.floor(Math.random() * emptyRegions.length)];
+            const regions = getRegionHeights();
+            const region = regions[regionIndex];
+
+            // Bulutun vertical pozisyonunu o bölge içinde biraz random ayarla
+            const cloudHeight = 90;
+            let top = region.top + Math.random() * (region.bottom - region.top - cloudHeight);
+
             const n = Math.floor(Math.random() * 50);
-            const top = Math.random() * (area.clientHeight - 100);
             const left = area.clientWidth + 50;
             const c = document.createElement('div');
             c.className = 'cloud';
             c.dataset.num = n;
+            c.dataset.region = regionIndex;
             c.style.top = top + 'px';
             c.style.left = left + 'px';
             c.innerText = n;
             area.appendChild(c);
+
+            // Bölgeyi işaretle
+            regionClouds[regionIndex] = c;
         }
 
-        // Ana oyun döngüsü
+        function clearRegionCloud(c) {
+            // Bulut bir bölgeden çıkınca işareti kaldır
+            if (c && typeof c.dataset.region !== "undefined") {
+                regionClouds[parseInt(c.dataset.region)] = null;
+            }
+        }
+
         function gameLoop() {
             area.querySelectorAll('.cloud').forEach(c => {
                 c.style.left = (parseFloat(c.style.left) - 2) + 'px';
                 if (parseFloat(c.style.left) + c.clientWidth < 0) {
+                    clearRegionCloud(c);
                     c.remove();
                 }
                 if (!c.classList.contains('hit')) {
@@ -225,21 +321,32 @@
                         c.classList.add('hit');
                         const num = parseInt(c.dataset.num);
                         if (num % 2 === 0) {
+                            // DOĞRU BULUT
                             c.classList.add('correct');
-                            sounds.correct.play();
+                            sounds.correct.currentTime = 0; sounds.correct.play();
                             correct++;
                             updateStatus();
+                            setTimeout(() => {
+                                clearRegionCloud(c);
+                                c.remove();
+                            }, 500);
                             if (correct >= maxCorrect) {
                                 game = false;
                                 clearInterval(cloudInterval);
                                 showModal('win');
                             }
                         } else {
-                            sounds.wrong.play();
+                            // YANLIŞ BULUT: daha güçlü sallansın, bulut kırmızı olsun, sonra silinsin
+                            c.classList.add('incorrect');
+                            sounds.wrong.currentTime = 0; sounds.wrong.play();
                             wrong++;
                             updateStatus();
                             area.classList.add('shake-strong');
-                            setTimeout(() => area.classList.remove('shake-strong'), 600);
+                            setTimeout(() => area.classList.remove('shake-strong'), 700);
+                            setTimeout(() => {
+                                clearRegionCloud(c);
+                                c.remove();
+                            }, 650);
                             if (wrong >= maxWrong) {
                                 game = false;
                                 clearInterval(cloudInterval);
@@ -254,19 +361,20 @@
             }
         }
 
-        // Oyunu başlatan fonksiyon
         function startGame() {
             correct = 0;
             wrong = 0;
             game = true;
             updateStatus();
+            // Bulutları sil ve bölgeyi temizle
             area.querySelectorAll('.cloud').forEach(c => c.remove());
+            regionClouds = Array(REGION_COUNT).fill(null);
             showModal();
             cloudInterval = setInterval(createCloud, 1200);
             requestAnimationFrame(gameLoop);
         }
 
-        // Fare ve Dokunmatik Sürükleme Kontrolü
+        // Sürükleme kontrolleri (değişmedi)
         plane.addEventListener('mousedown', e => {
             if (game) {
                 dragging = true;
@@ -274,45 +382,32 @@
                 plane.style.cursor = 'grabbing';
             }
         });
-
-        // Fare hareketini oyun alanı üzerinde dinle
         area.addEventListener('mousemove', e => {
-            if (!dragging) {
-                return;
-            }
+            if (!dragging) return;
             const rect = area.getBoundingClientRect();
             let y = e.clientY - rect.top - offsetY;
             y = Math.max(0, Math.min(area.clientHeight - plane.clientHeight, y));
             plane.style.top = y + 'px';
         });
-
-        // Fare bırakıldığında sürüklemeyi durdur
         window.addEventListener('mouseup', () => {
             dragging = false;
             plane.style.cursor = 'grab';
         });
 
-        // Dokunmatik sürükleme kontrolü
         plane.addEventListener('touchstart', e => {
             if (game) {
                 dragging = true;
                 offsetY = e.touches[0].clientY - plane.getBoundingClientRect().top;
             }
         }, { passive: false });
-
-        // Dokunma hareketini oyun alanı üzerinde dinle
         area.addEventListener('touchmove', e => {
-            if (!dragging) {
-                return;
-            }
+            if (!dragging) return;
             e.preventDefault();
             const rect = area.getBoundingClientRect();
             let y = e.touches[0].clientY - rect.top - offsetY;
             y = Math.max(0, Math.min(area.clientHeight - plane.clientHeight, y));
             plane.style.top = y + 'px';
         }, { passive: false });
-
-        // Parmak kaldırıldığında sürüklemeyi durdur
         window.addEventListener('touchend', () => {
             dragging = false;
         });
